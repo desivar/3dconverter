@@ -1,5 +1,4 @@
-// src/components/ControlPanel.js
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react'; // Add useCallback
 
 const ControlPanel = ({ onFileLoaded, onProcessImage, processedImage }) => {
     const uploadAreaRef = useRef(null);
@@ -27,7 +26,6 @@ const ControlPanel = ({ onFileLoaded, onProcessImage, processedImage }) => {
         const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
 
         if (!validTypes.includes(file.type)) {
-            // You might want to pass this status up to App.js or use a global state for notifications
             console.error('Please upload a valid image file (PNG, JPG, SVG)');
             setIsProcessEnabled(false);
             return;
@@ -67,6 +65,29 @@ const ControlPanel = ({ onFileLoaded, onProcessImage, processedImage }) => {
     const handleDragLeave = () => {
         uploadAreaRef.current.classList.remove('dragover');
     };
+
+    // NEW: Function to handle downloading the processed image
+    const handleDownloadProcessedImage = useCallback(() => {
+        if (processedCanvasRef.current && processedImage) {
+            const canvas = processedCanvasRef.current;
+            // Get the data URL from the canvas
+            // You can change 'image/png' to 'image/jpeg' if preferred, and add a quality parameter for JPEG (e.g., 0.9)
+            const imageURL = canvas.toDataURL('image/png');
+
+            // Create a temporary link element
+            const link = document.createElement('a');
+            link.href = imageURL;
+            link.download = 'processed_image.png'; // Suggested filename
+
+            // Programmatically click the link to trigger the download
+            document.body.appendChild(link); // Append to body is good practice for programmatic clicks
+            link.click();
+            document.body.removeChild(link); // Clean up the temporary link
+        } else {
+            // Optionally, you can show a status message here
+            console.warn("No processed image to download.");
+        }
+    }, [processedImage]); // Depend on processedImage to ensure the canvas is ready
 
     return (
         <div className="control-panel">
@@ -139,6 +160,7 @@ const ControlPanel = ({ onFileLoaded, onProcessImage, processedImage }) => {
                         min="10"
                         max="200"
                         value={extrusionDepth}
+                        step="1" // Added step for integer values
                         onChange={(e) => setExtrusionDepth(parseInt(e.target.value))}
                     />
                 </div>
@@ -159,6 +181,15 @@ const ControlPanel = ({ onFileLoaded, onProcessImage, processedImage }) => {
                     <canvas id="originalCanvas" ref={originalCanvasRef} style={{ display: 'none' }}></canvas>
                     <canvas id="processedCanvas" ref={processedCanvasRef}></canvas>
                 </div>
+                {/* NEW: Download button for processed image */}
+                <button
+                    className="btn"
+                    onClick={handleDownloadProcessedImage}
+                    disabled={!processedImage} // Disable if no processed image
+                    style={{ marginTop: '10px' }} // Add some spacing
+                >
+                    ⬇️ Download Processed Image
+                </button>
             </div>
         </div>
     );
